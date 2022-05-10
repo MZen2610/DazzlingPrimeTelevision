@@ -1,7 +1,7 @@
 from telegram import Bot, ReplyKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from dotenv import load_dotenv
-from quiz_questions import make_questions_answers
+from quiz_questions import make_questions_answers, multi_split
 from log_handler import LogsHandler
 from random import randint
 from redis import StrictRedis
@@ -21,7 +21,7 @@ def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(text='Здравствуйте!', reply_markup=reply_markup)
 
 
-def questions(update: Update, context: CallbackContext):
+def new_questions(update: Update, context: CallbackContext):
     id_user = update.message.chat_id
     text = update.message.text
     list_keys = list(context.bot_data['questions_answers'].keys())
@@ -36,8 +36,22 @@ def questions(update: Update, context: CallbackContext):
         update.message.reply_text(question)
 
 
+def answers_on_questions(update: Update, context: CallbackContext):
+    id_user = update.message.chat_id
+    redis_session = context.bot_data['redis_session']
+    question = redis_session.get(id_user)
+    answer = multi_split(
+        ['.', '('], context.bot_data['questions_answers'].get(question, '')
+    )
+    text_answer = update.message.text
+    if text_answer.upper().strip() == answer.upper().strip():
+        reply_text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+    else:
+        reply_text = 'Неправильно… Попробуешь ещё раз?'
+    update.message.reply_text(text=reply_text)
+
+
 def error(update: Update, context: CallbackContext) -> None:
-    """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
@@ -58,7 +72,7 @@ def main():
         db=0
     )
 
-    questions_answers = make_questions_answers(quiz_files_folder).copy()
+    questions_answers = make_questions_answers(quiz_files_folder)
 
     logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -72,7 +86,8 @@ def main():
     dispatcher.bot_data['redis_session'] = redis_session
     dispatcher.bot_data['questions_answers'] = questions_answers
     dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.text, questions))
+    dispatcher.add_handler(MessageHandler(Filters.regex('^Новый вопрос$'), new_questions))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, answers_on_questions))
     dispatcher.add_error_handler(error)
 
     try:
