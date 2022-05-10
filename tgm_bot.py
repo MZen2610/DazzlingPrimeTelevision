@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from quiz_questions import make_questions_answers
 from log_handler import LogsHandler
 from random import randint
+from redis import StrictRedis
 
 import logging
 import os
@@ -21,13 +22,18 @@ def start(update: Update, context: CallbackContext) -> None:
 
 
 def questions(update: Update, context: CallbackContext):
+    id_user = update.message.chat_id
     text = update.message.text
     list_keys = list(context.bot_data['questions_answers'].keys())
-    random_item = randint(0, len(list_keys)-1)
-    key = list_keys[random_item]
-    if text == 'Новый вопрос':
-        update.message.reply_text(key)
+    random_item = randint(0, len(list_keys) - 1)
+    key_question = list_keys[random_item]
 
+    redis_session = context.bot_data['redis_session']
+    redis_session.set(id_user, key_question)
+    question = redis_session.get(id_user)
+
+    if text == 'Новый вопрос':
+        update.message.reply_text(question)
 
 
 def error(update: Update, context: CallbackContext) -> None:
@@ -41,6 +47,16 @@ def main():
     tgm_token = os.environ['TGM_TOKEN']
     session_id = os.environ['SESSION_ID']
     quiz_files_folder = os.environ['QUIZ_FILES_FOLDER']
+    redis_host = os.environ['REDIS_HOST']
+    redis_port = os.environ['REDIS_PORT']
+    redis_psw = os.environ['REDIS_PSW']
+    redis_session = StrictRedis(
+        host=redis_host,
+        port=redis_port,
+        password=redis_psw,
+        decode_responses=True,
+        db=0
+    )
 
     questions_answers = make_questions_answers(quiz_files_folder).copy()
 
@@ -53,6 +69,7 @@ def main():
 
     updater = Updater(tgm_token)
     dispatcher = updater.dispatcher
+    dispatcher.bot_data['redis_session'] = redis_session
     dispatcher.bot_data['questions_answers'] = questions_answers
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(MessageHandler(Filters.text, questions))
