@@ -1,5 +1,6 @@
-from telegram import Bot, ReplyKeyboardMarkup, Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram import Bot, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackContext,
+                          ConversationHandler)
 from dotenv import load_dotenv
 from quiz_questions import make_questions_answers, multi_split
 from log_handler import LogsHandler
@@ -9,19 +10,21 @@ from redis import StrictRedis
 import logging
 import os
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
+NEW_QUESTION, ANSWER = range(2)
+
 
 def start(update: Update, context: CallbackContext) -> None:
-    custom_keyboard = [['Новый вопрос', 'Сдаться'], ['Мой счёт']]
+    custom_keyboard = [['Новый вопрос', 'Сдаться'], ['Мой счёт', 'Выйти']]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
     update.message.reply_text(text='Здравствуйте!', reply_markup=reply_markup)
+    return NEW_QUESTION
 
 
-def new_questions(update: Update, context: CallbackContext):
+def handle_new_question_request(update: Update, context: CallbackContext) -> None:
     id_user = update.message.chat_id
     text = update.message.text
     list_keys = list(context.bot_data['questions_answers'].keys())
@@ -34,9 +37,10 @@ def new_questions(update: Update, context: CallbackContext):
 
     if text == 'Новый вопрос':
         update.message.reply_text(question)
+    return ANSWER
 
 
-def answers_on_questions(update: Update, context: CallbackContext):
+def handle_solution_attempt(update: Update, context: CallbackContext) -> None:
     id_user = update.message.chat_id
     redis_session = context.bot_data['redis_session']
     question = redis_session.get(id_user)
@@ -47,8 +51,17 @@ def answers_on_questions(update: Update, context: CallbackContext):
     if text_answer.upper().strip() == answer.upper().strip():
         reply_text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
     else:
-        reply_text = 'Неправильно… Попробуешь ещё раз?'
+        reply_text = f'Неправильно… Верный ответ "{answer}". Попробуешь ещё раз?'
     update.message.reply_text(text=reply_text)
+    return NEW_QUESTION
+
+
+def done(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text(
+        'Счастливо!',
+        reply_markup=ReplyKeyboardRemove()
+    )
+    return ConversationHandler.END
 
 
 def error(update: Update, context: CallbackContext) -> None:
@@ -85,9 +98,17 @@ def main():
     dispatcher = updater.dispatcher
     dispatcher.bot_data['redis_session'] = redis_session
     dispatcher.bot_data['questions_answers'] = questions_answers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.regex('^Новый вопрос$'), new_questions))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, answers_on_questions))
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            NEW_QUESTION: [MessageHandler(Filters.regex('^Новый вопрос$'), handle_new_question_request)],
+            ANSWER: [MessageHandler(Filters.text & ~Filters.command, handle_solution_attempt)]
+
+        },
+        fallbacks=[MessageHandler(Filters.regex('^Выйти$'), done)],
+        allow_reentry=True,
+    )
+    dispatcher.add_handler(conv_handler)
     dispatcher.add_error_handler(error)
 
     try:
