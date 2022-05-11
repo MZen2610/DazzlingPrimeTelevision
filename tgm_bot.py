@@ -1,6 +1,6 @@
 from telegram import Bot, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackContext,
-                          ConversationHandler)
+                          ConversationHandler, RegexHandler)
 from dotenv import load_dotenv
 from quiz_questions import make_questions_answers, multi_split
 from log_handler import LogsHandler
@@ -14,14 +14,24 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-NEW_QUESTION, ANSWER = range(2)
+CHOOSING = range(4)
+
+
+def get_answer(update, context):
+    id_user = update.message.chat_id
+    redis_session = context.bot_data['redis_session']
+    question = redis_session.get(id_user)
+    answer = multi_split(
+        ['.', '('], context.bot_data['questions_answers'].get(question, '')
+    )
+    return answer
 
 
 def start(update: Update, context: CallbackContext) -> None:
     custom_keyboard = [['Новый вопрос', 'Сдаться'], ['Мой счёт', 'Выйти']]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
     update.message.reply_text(text='Здравствуйте!', reply_markup=reply_markup)
-    return NEW_QUESTION
+    return CHOOSING
 
 
 def handle_new_question_request(update: Update, context: CallbackContext) -> None:
@@ -35,25 +45,26 @@ def handle_new_question_request(update: Update, context: CallbackContext) -> Non
     redis_session.set(id_user, key_question)
     question = redis_session.get(id_user)
 
-    if text == 'Новый вопрос':
-        update.message.reply_text(question)
-    return ANSWER
+    update.message.reply_text(question)
+    return CHOOSING
 
 
 def handle_solution_attempt(update: Update, context: CallbackContext) -> None:
-    id_user = update.message.chat_id
-    redis_session = context.bot_data['redis_session']
-    question = redis_session.get(id_user)
-    answer = multi_split(
-        ['.', '('], context.bot_data['questions_answers'].get(question, '')
-    )
+    answer = get_answer(update, context)
     text_answer = update.message.text
     if text_answer.upper().strip() == answer.upper().strip():
         reply_text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
     else:
         reply_text = f'Неправильно… Верный ответ "{answer}". Попробуешь ещё раз?'
     update.message.reply_text(text=reply_text)
-    return NEW_QUESTION
+    return CHOOSING
+
+
+def handle_surrender_request(update: Update, context: CallbackContext):
+    answer = get_answer(update, context)
+    reply_text = f'Верный ответ "{answer}"'
+    update.message.reply_text(text=reply_text)
+    handle_new_question_request(update, context)
 
 
 def done(update: Update, context: CallbackContext) -> None:
@@ -101,8 +112,10 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            NEW_QUESTION: [MessageHandler(Filters.regex('^Новый вопрос$'), handle_new_question_request)],
-            ANSWER: [MessageHandler(Filters.text & ~Filters.command, handle_solution_attempt)]
+            CHOOSING: [
+                MessageHandler(Filters.regex('^Новый вопрос$'), handle_new_question_request),
+                MessageHandler(Filters.regex('^Сдаться$'), handle_surrender_request),
+                MessageHandler(Filters.text & ~Filters.command, handle_solution_attempt)],
 
         },
         fallbacks=[MessageHandler(Filters.regex('^Выйти$'), done)],
