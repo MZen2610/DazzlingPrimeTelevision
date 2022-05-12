@@ -1,5 +1,6 @@
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from dotenv import load_dotenv
 # from handle_intent import detect_intent_texts
 from log_handler import LogsHandler
@@ -13,17 +14,17 @@ logger = logging.getLogger(__file__)
 
 
 def process_vk_message(event, vk_bot):
-    # response = detect_intent_texts(
-    #     project_id=project_id,
-    #     session_id=event.user_id,
-    #     text=event.text,
-    #     language_code='ru-RU'
-    # )
-    # if not response.query_result.intent.is_fallback:
+    keyboard = VkKeyboard()
+    keyboard.add_button('Новый вопрос', color=VkKeyboardColor.PRIMARY)
+    keyboard.add_button('Сдаться', color=VkKeyboardColor.PRIMARY)
+    keyboard.add_line()
+    keyboard.add_button('Мой счёт', color=VkKeyboardColor.PRIMARY)
+    keyboard.add_button('Выйти', color=VkKeyboardColor.NEGATIVE)
+
     vk_bot.messages.send(
         user_id=event.user_id,
         random_id=get_random_id(),
-        # message=response.query_result.fulfillment_text
+        keyboard=keyboard.get_keyboard(),
         message=event.text
     )
 
