@@ -11,7 +11,6 @@ import logging
 import os
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 CHOOSING = range(4)
@@ -36,7 +35,6 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def handle_new_question_request(update: Update, context: CallbackContext) -> None:
     id_user = update.message.chat_id
-    text = update.message.text
     list_keys = list(context.bot_data['questions_answers'].keys())
     random_item = randint(0, len(list_keys) - 1)
     key_question = list_keys[random_item]
@@ -45,7 +43,7 @@ def handle_new_question_request(update: Update, context: CallbackContext) -> Non
     redis_session.set(id_user, key_question)
     question = redis_session.get(id_user)
 
-    update.message.reply_text(question)
+    update.message.reply_text(f'Новый вопрос: \n {question}')
     return CHOOSING
 
 
@@ -64,7 +62,11 @@ def handle_surrender_request(update: Update, context: CallbackContext):
     answer = get_answer(update, context)
     reply_text = f'Верный ответ "{answer}"'
     update.message.reply_text(text=reply_text)
-    handle_new_question_request(update, context)
+
+
+def handle_score(update: Update, context: CallbackContext) -> None:
+    user = update.message.chat_id
+    update.message.reply_text(text='TODO Показать счёт...')
 
 
 def done(update: Update, context: CallbackContext) -> None:
@@ -115,6 +117,7 @@ def main():
             CHOOSING: [
                 MessageHandler(Filters.regex('^Новый вопрос$'), handle_new_question_request),
                 MessageHandler(Filters.regex('^Сдаться$'), handle_surrender_request),
+                MessageHandler(Filters.regex('^Мой счёт$'), handle_score),
                 MessageHandler(Filters.text & ~Filters.command, handle_solution_attempt)],
 
         },
