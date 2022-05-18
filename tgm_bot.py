@@ -10,8 +10,8 @@ from redis import StrictRedis
 import logging
 import os
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__file__)
 
 CHOOSING = range(4)
 

@@ -12,8 +12,8 @@ import os
 import vk_api as vk
 import logging
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__file__)
 
 
 def get_answer(id_user, redis_session, questions_answers):
