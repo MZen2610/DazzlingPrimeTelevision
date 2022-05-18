@@ -11,11 +11,11 @@ def make_questions_answers(folder):
         questions = []
         answers = []
         for content in contents:
-            line = ' '.join(content.split('\n'))
-            if ''.join(line.split(' ')).startswith('Вопрос'):
-                questions.append(' '.join(line.split(':')[1:]))
-            if ''.join(line.split(' ')).startswith('Ответ'):
-                answers.append(' '.join(line.split(':')[1:]))
+            if content.startswith('Вопрос'):
+                questions.append(''.join(content.split('\n')[1:]))
+            elif content.startswith('Ответ'):
+                answers.append(''.join(content.split('\n')[1:]))
+
         questions_answers = dict(zip(questions, answers))
         all_questions_answers.update(questions_answers)
     return all_questions_answers
