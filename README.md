@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 Для запуска Telegram бота используйте команду:
 ```
-python3 tg_bot.py
+python tg_bot.py
 ```
 Для запуска VK бота используйте команду:
 ```
