@@ -2,9 +2,8 @@ from telegram import Bot, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackContext,
                           ConversationHandler, RegexHandler)
 from dotenv import load_dotenv
-from quiz_questions import make_questions_answers, multi_split
+from quiz_questions import make_questions_answers, multi_split, get_random_key
 from log_handler import LogsHandler
-from random import randint
 from redis import StrictRedis
 
 import logging
@@ -35,9 +34,7 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def handle_new_question_request(update: Update, context: CallbackContext) -> None:
     user_id = update.message.chat_id
-    keys = list(context.bot_data['questions_answers'].keys())
-    random_item = randint(0, len(keys) - 1)
-    key_question = keys[random_item]
+    key_question = get_random_key(context.bot_data['questions_answers'])
 
     redis_session = context.bot_data['redis_session']
     redis_session.set(user_id, key_question)

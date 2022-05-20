@@ -5,8 +5,7 @@ from dotenv import load_dotenv
 from log_handler import LogsHandler
 from telegram import Bot
 from redis import StrictRedis
-from random import randint
-from quiz_questions import make_questions_answers, multi_split
+from quiz_questions import make_questions_answers, multi_split, get_random_key
 
 import os
 import vk_api as vk
@@ -26,10 +25,7 @@ def get_answer(user_id, redis_session, questions_answers):
 
 def handle_new_question_request(event, vk_api, redis_session, questions_answers, keyboard) -> None:
     user_id = event.user_id
-    keys = list(questions_answers.keys())
-    random_item = randint(0, len(keys) - 1)
-    key_question = keys[random_item]
-
+    key_question = get_random_key(questions_answers)
     redis_session.set(user_id, key_question)
     question = redis_session.get(user_id)
 
