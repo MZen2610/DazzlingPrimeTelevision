@@ -79,7 +79,7 @@ def handle_score(event, vk_bot, keyboard):
     )
 
 
-def done(event, vk_api, keyboard) -> None:
+def execute_exit(event, vk_api, keyboard) -> None:
     keyboard.keyboard['buttons'] = []
     vk_api.messages.send(
         user_id=event.user_id,
@@ -105,7 +105,7 @@ def process_vk_message(event, vk_api, redis_session, questions_answers):
     elif 'Мой счёт' in event.text:
         handle_score(event, vk_api, keyboard)
     elif 'Выйти' in event.text:
-        done(event, vk_api, keyboard)
+        execute_exit(event, vk_api, keyboard)
     else:
         handle_solution_attempt(
             event, vk_api, redis_session, questions_answers, keyboard)
