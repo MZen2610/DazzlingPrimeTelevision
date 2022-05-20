@@ -35,9 +35,9 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def handle_new_question_request(update: Update, context: CallbackContext) -> None:
     user_id = update.message.chat_id
-    list_keys = list(context.bot_data['questions_answers'].keys())
-    random_item = randint(0, len(list_keys) - 1)
-    key_question = list_keys[random_item]
+    keys = list(context.bot_data['questions_answers'].keys())
+    random_item = randint(0, len(keys) - 1)
+    key_question = keys[random_item]
 
     redis_session = context.bot_data['redis_session']
     redis_session.set(user_id, key_question)

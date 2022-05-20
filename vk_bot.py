@@ -26,9 +26,9 @@ def get_answer(user_id, redis_session, questions_answers):
 
 def handle_new_question_request(event, vk_api, redis_session, questions_answers, keyboard) -> None:
     user_id = event.user_id
-    list_keys = list(questions_answers.keys())
-    random_item = randint(0, len(list_keys) - 1)
-    key_question = list_keys[random_item]
+    keys = list(questions_answers.keys())
+    random_item = randint(0, len(keys) - 1)
+    key_question = keys[random_item]
 
     redis_session.set(user_id, key_question)
     question = redis_session.get(user_id)
