@@ -17,9 +17,9 @@ CHOOSING = range(4)
 
 
 def get_answer(update, context):
-    id_user = update.message.chat_id
+    user_id = update.message.chat_id
     redis_session = context.bot_data['redis_session']
-    question = redis_session.get(id_user)
+    question = redis_session.get(user_id)
     answer = multi_split(
         ['.', '('], context.bot_data['questions_answers'].get(question, '')
     )
@@ -34,14 +34,14 @@ def start(update: Update, context: CallbackContext) -> None:
 
 
 def handle_new_question_request(update: Update, context: CallbackContext) -> None:
-    id_user = update.message.chat_id
+    user_id = update.message.chat_id
     list_keys = list(context.bot_data['questions_answers'].keys())
     random_item = randint(0, len(list_keys) - 1)
     key_question = list_keys[random_item]
 
     redis_session = context.bot_data['redis_session']
-    redis_session.set(id_user, key_question)
-    question = redis_session.get(id_user)
+    redis_session.set(user_id, key_question)
+    question = redis_session.get(user_id)
 
     update.message.reply_text(f'Новый вопрос: \n {question}')
     return CHOOSING

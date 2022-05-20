@@ -16,8 +16,8 @@ import logging
 logger = logging.getLogger(__file__)
 
 
-def get_answer(id_user, redis_session, questions_answers):
-    question = redis_session.get(id_user)
+def get_answer(user_id, redis_session, questions_answers):
+    question = redis_session.get(user_id)
     answer = multi_split(
         ['.', '('], questions_answers.get(question, '')
     )
@@ -25,16 +25,16 @@ def get_answer(id_user, redis_session, questions_answers):
 
 
 def handle_new_question_request(event, vk_api, redis_session, questions_answers, keyboard) -> None:
-    id_user = event.user_id
+    user_id = event.user_id
     list_keys = list(questions_answers.keys())
     random_item = randint(0, len(list_keys) - 1)
     key_question = list_keys[random_item]
 
-    redis_session.set(id_user, key_question)
-    question = redis_session.get(id_user)
+    redis_session.set(user_id, key_question)
+    question = redis_session.get(user_id)
 
     vk_api.messages.send(
-        user_id=id_user,
+        user_id=user_id,
         random_id=get_random_id(),
         keyboard=keyboard.get_keyboard(),
         message=f'Новый вопрос: \n {question}'
