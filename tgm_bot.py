@@ -118,10 +118,11 @@ def main():
                 MessageHandler(Filters.regex('^Новый вопрос$'), handle_new_question_request),
                 MessageHandler(Filters.regex('^Сдаться$'), handle_surrender_request),
                 MessageHandler(Filters.regex('^Мой счёт$'), handle_score),
+                MessageHandler(Filters.regex('^Выйти$'), done),
                 MessageHandler(Filters.text & ~Filters.command, handle_solution_attempt)],
 
         },
-        fallbacks=[MessageHandler(Filters.regex('^Выйти$'), done)],
+        fallbacks=[CommandHandler('stop', done)],
         allow_reentry=True,
     )
     dispatcher.add_handler(conv_handler)
