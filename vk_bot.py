@@ -27,13 +27,12 @@ def handle_new_question_request(event, vk_api, redis_session, questions_answers,
     user_id = event.user_id
     key_question = get_random_key(questions_answers)
     redis_session.set(user_id, key_question)
-    question = redis_session.get(user_id)
 
     vk_api.messages.send(
         user_id=user_id,
         random_id=get_random_id(),
         keyboard=keyboard.get_keyboard(),
-        message=f'Новый вопрос: \n {question}'
+        message=f'Новый вопрос: \n {key_question}'
     )
 
 

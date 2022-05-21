@@ -38,9 +38,8 @@ def handle_new_question_request(update: Update, context: CallbackContext) -> Non
 
     redis_session = context.bot_data['redis_session']
     redis_session.set(user_id, key_question)
-    question = redis_session.get(user_id)
 
-    update.message.reply_text(f'Новый вопрос: \n {question}')
+    update.message.reply_text(f'Новый вопрос: \n {key_question}')
     return CHOOSING
 
 
