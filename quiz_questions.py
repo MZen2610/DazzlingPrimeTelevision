@@ -13,18 +13,22 @@ def make_questions_answers(folder):
         questions = []
         answers = []
         for content in contents:
-            if content.startswith('Вопрос'):
-                questions.append(''.join(content.split('\n')[1:]))
-            elif content.startswith('Ответ'):
-                answers.append(''.join(content.split('\n')[1:]))
+            sentence = (content.replace('\n', '', 1)).replace('\n', ' ')
+            if sentence.startswith('Вопрос'):
+                questions.append(' '.join(sentence.split(':')[1:]))
+            elif sentence.startswith('Ответ'):
+                answers.append(' '.join(sentence.split(':')[1:]))
 
         compilation = dict(zip(questions, answers))
         questions_answers.update(compilation)
+
     return questions_answers
+
 
 def multi_split(delimiters, string, maxsplit=0):
     regex_pattern = '|'.join(map(re.escape, delimiters))
     return re.split(regex_pattern, string, maxsplit)[0]
+
 
 def get_random_key(keys):
     keys = list(keys.keys())
@@ -32,7 +36,3 @@ def get_random_key(keys):
     key = keys[random_item]
 
     return key
-
-
-
-
