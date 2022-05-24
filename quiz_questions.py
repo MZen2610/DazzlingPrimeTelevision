@@ -1,7 +1,6 @@
-from random import randint
-
 import os
 import re
+import random
 
 
 def make_questions_answers(folder):
@@ -30,9 +29,7 @@ def multi_split(delimiters, string, maxsplit=0):
     return re.split(regex_pattern, string, maxsplit)[0]
 
 
-def get_random_key(keys):
-    keys = list(keys.keys())
-    random_item = randint(0, len(keys) - 1)
-    key = keys[random_item]
+def get_random_key(questions_answers):
+    question = random.choice(list(questions_answers.keys()))
 
-    return key
+    return question
